@@ -28,6 +28,16 @@ def before_install():
   data = {
     'users': 5,
     'active_users': active_users,
+    'concurrent_users': [
+      {
+        "role": "role 1",
+        "allowed": 5
+      },
+      {
+        "role": "role 2",
+        "allowed": 2
+      }
+    ],
     'space': 5120,
     'db_space': 100,
     'company': 2,
