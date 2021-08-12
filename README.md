@@ -12,8 +12,27 @@ Install the app. It will create a file quota.json in site directory
 Contents will look similar:
 
 {
-  "users": 5,
+  "users": [
+    {
+      "role": "",
+      "allowed": 5
+    },
+    {
+      "role": "role 1",
+      "allowed": 2
+    }
+  ],
   "active_users": 1,
+  "concurrent_users": [
+    {
+      "role": "role 1",
+      "allowed": 5
+    },
+    {
+      "role": "role 2",
+      "allowed": 2
+    }
+  ],  
   "space": 5120,
   "db_space": 100,
   "company": 2,
@@ -35,6 +54,9 @@ Default is:
 - 2 companies
 - 5GB space for attachments and backup
 - 100MB space for Database
+
+users has been updated to include roles. If the rolw is set to "" then it will be total number of active users.
+concurrent_users will limit the total number of user logged in at any one time for the specified role. If this is missing or left empty it will do nothing. If the role is left blank "" then it will limit the total number of concurrent users regardless of role.
 
 quota.json file will automatically get updated for any 
 

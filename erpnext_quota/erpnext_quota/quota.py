@@ -30,12 +30,8 @@ def validate_users(self, count_administrator_user, count_website_users, allowed_
   1. self
   2. count_administrator_user => (bool) => either count administrator or not
   3. count_website_users => (bool) => either count website users or not
-  4. allowed_users => (int) => maximum users allowed
+  4. allowed_users => (array of dictionaries) => maximum users allowed per role
   '''
-  # allowed user value type check
-  if type(allowed_users) is not int:
-    frappe.throw(_("Invalid value for maximum User Allowed limit. it can be a whole number only."), frappe.ValidationError)
-
   # Fetching all active users list
   filters = {
     'enabled': 1,
@@ -47,25 +43,46 @@ def validate_users(self, count_administrator_user, count_website_users, allowed_
     filters['name'] = ['not in',['Guest', 'Administrator']]
 
   user_list = frappe.get_list('User', filters, ["name"])
-  active_users = len(user_list)
-  is_desk = ""
 
-  # if don't have to count website users
-  if not count_website_users:
-    active_users = 0
-    is_desk = "Desk"
+  for au in allowed_users:
+    # allowed user value type check
+    if type(au['allowed']) is not int:
+      if au['role'] == '':
+        frappe.throw(_("Invalid value for maximum User Allowed limit where role has not been specified. It can be a whole number only."), frappe.ValidationError)
+      else:
+        frappe.throw(_("Invalid value for maximum User Allowed limit for role " + au['role'] + ". It can be a whole number only."), frappe.ValidationError)
 
-    for user in user_list:
-      roles = frappe.get_list("Has Role", { 'parent': user.name}, ['role'])
-      for row in roles:
-        if frappe.get_value("Role", row.role, "desk_access") == 1: 
-          active_users += 1
-          break
 
-  # Users limit validation
-  if allowed_users != 0 and active_users >= allowed_users:
-      if not frappe.get_list('User', filters={'name': self.name}):
-        frappe.throw('Only {} active {} users allowed and you have {} active users. Please disable users or to increase the limit please contact sales'. format(allowed_users, is_desk, active_users))
+    # Check if role is defined or if website users can be ignored.
+    active_users = len(user_list)
+    is_desk = ""
+    if au['role'] == '' and not count_website_users:
+      active_users = 0
+      is_desk = "Desk"
+
+      for user in user_list:
+        roles = frappe.get_list("Has Role", { 'parent': user.name}, ['role'])
+        for row in roles:
+          if frappe.get_value("Role", row.role, "desk_access") == 1: 
+            active_users += 1
+            break
+
+    elif au['role'] != '':
+      active_users = 0
+      for user in user_list:
+        roles = frappe.get_list("Has Role", { 'parent': user.name}, ['role'])
+        for row in roles:
+          if row.role == au['role']: 
+            active_users += 1
+            break
+
+    # Users limit validation
+    if au['allowed'] != 0 and active_users > au['allowed']:
+        #if not frappe.get_list('User', filters={'name': self.name}):
+        if au['role'] == '':
+          frappe.throw('Only {} active {} users allowed. Please disable users or to increase the limit please contact sales'. format(au['allowed'], is_desk))
+        else:
+          frappe.throw('Only {} active user of role {} allowed. Please disable users or to increase the limit please contact sales'. format(au['allowed'], au['role']))
 
   return active_users
 
